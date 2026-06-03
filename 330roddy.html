@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>330 Roddy Branch — Project Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* --- Password gate --- */
+  #gate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  #gate-card {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 14px;
+    padding: 2rem 2.5rem;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+  #gate-card h1 { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
+  #gate-card p  { font-size: 13px; color: #666; margin-bottom: 1.5rem; }
+  #gate-card input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #gate-card input:focus { border-color: #1D9E75; }
+  #gate-card button {
+    width: 100%;
+    padding: 10px;
+    background: #1a1a18;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  #gate-card button:hover { opacity: 0.85; }
+  #gate-error { font-size: 12px; color: #c0392b; margin-top: 8px; display: none; }
+
+  /* --- Dashboard --- */
+  #dashboard { display: none; }
+
+  header {
+    background: #fff;
+    border-bottom: 0.5px solid rgba(0,0,0,0.1);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header .logo { font-size: 13px; font-weight: 500; color: #888; letter-spacing: 0.03em; }
+  header .title { font-size: 16px; font-weight: 500; }
+  .badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .badge-warning { background: #faeeda; color: #854f0b; }
+  .badge-danger  { background: #fcebeb; color: #a32d2d; }
+  .badge-success { background: #eaf3de; color: #3b6d11; }
+
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .updated { font-size: 12px; color: #888; margin-bottom: 1.5rem; }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .metric-card {
+    background: #eeeee9;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+  }
+  .metric-card .label { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .metric-card .value { font-size: 24px; font-weight: 500; line-height: 1.1; }
+  .metric-card .sub   { font-size: 11px; color: #888; margin-top: 4px; }
+  .metric-card .sub.up { color: #3b6d11; }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .card {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+  }
+  .card h2 { font-size: 13px; font-weight: 500; margin-bottom: 12px; color: #1a1a18; }
+
+  /* Progress bar */
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
+  .progress-track { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+  .progress-fill  { height: 100%; background: #1D9E75; border-radius: 4px; }
+
+  .phase-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .phase-list li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
+  .icon-check   { color: #1D9E75; font-size: 15px; }
+  .icon-active  { color: #ba7517; font-size: 15px; }
+  .icon-pending { color: #ccc;    font-size: 15px; }
+
+  /* Listing outlook */
+  .listing-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 13px; }
+  .listing-row .lbl { color: #666; }
+  .listing-row .val { font-weight: 500; }
+  .listing-row .val.highlight { color: #1D9E75; }
+  .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 10px 0; }
+
+  /* AP table */
+  .ap-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .ap-table td { padding: 6px 0; border-bottom: 0.5px solid rgba(0,0,0,0.06); }
+  .ap-table td:last-child { text-align: right; font-weight: 500; }
+  .ap-table tr:last-child td { border-bottom: none; font-weight: 600; }
+
+  /* Selections */
+  .sel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sel-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #555; }
+
+  /* Comp section */
+  .comp-row { display: flex; justify-content: space-between; font-size: 13px; color: #555; padding: 5px 0; border-bottom: 0.5px solid rgba(0,0,0,0.06); }
+  .comp-row:last-child { border-bottom: none; }
+  .comp-row strong { color: #1a1a18; }
+
+  /* Email copy box */
+  .email-box {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .email-box h2 { font-size: 13px; font-weight: 500; margin-bottom: 12px; }
+  .email-body {
+    font-size: 13px;
+    line-height: 1.75;
+    color: #333;
+    white-space: pre-wrap;
+    background: #f9f8f5;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 0.5px solid rgba(0,0,0,0.07);
+  }
+  .copy-btn {
+    margin-top: 10px;
+    padding: 7px 16px;
+    background: transparent;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .copy-btn:hover { background: #f0efea; }
+
+  footer { text-align: center; font-size: 11px; color: #aaa; padding: 2rem 1rem; }
+
+  @media (max-width: 480px) {
+    main { padding: 1rem; }
+    .sel-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Password gate -->
+<div id="gate">
+  <div id="gate-card">
+    <h1>330 Roddy Branch</h1>
+    <p>Falcon Development — Project Dashboard</p>
+    <input type="password" id="pw-input" placeholder="Password" autocomplete="current-password" />
+    <button onclick="checkPassword()">Enter</button>
+    <p id="gate-error">Incorrect password. Try again.</p>
+  </div>
+</div>
+
+<!-- Dashboard (hidden until auth) -->
+<div id="dashboard">
+
+  <header>
+    <div>
+      <div class="logo">FALCON DEVELOPMENT</div>
+      <div class="title">330 Roddy Branch Rd, Rockford TN 37853</div>
+    </div>
+    <span class="badge badge-warning">Drywall phase</span>
+  </header>
+
+  <main>
+
+    <p class="updated">Updated week of June 1, 2026 &nbsp;·&nbsp; Laurelwood (left garage) &nbsp;·&nbsp; 2,769 sqft &nbsp;·&nbsp; 3 bed / 3 bath</p>
+
+    <!-- Metric cards -->
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="label">Total invested</div>
+        <div class="value">$411K</div>
+        <div class="sub up">+$6.6K since May 17</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Cost / sqft (ex-lot)</div>
+        <div class="value">$120</div>
+        <div class="sub">on 2,769 sqft</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Proj. all-in at completion</div>
+        <div class="value">~$534K</div>
+        <div class="sub">~$193/sqft</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Days to target close</div>
+        <div class="value">91</div>
+        <div class="sub">Aug 31, 2026</div>
+      </div>
+    </div>
+
+    <!-- Build progress + Listing outlook -->
+    <div class="card-grid">
+
+      <div class="card">
+        <h2>Build progress</h2>
+        <div class="progress-label"><span>~57% complete</span><span>Aug 31 target</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:57%"></div></div>
+        <ul class="phase-list">
+          <li><span class="icon-check">✓</span> Foundation, framing, MEP rough-in</li>
+          <li><span class="icon-active">◐</span> Drywall — hanging → taping &amp; mud</li>
+          <li><span class="icon-pending">○</span> Trim, paint, cabinets, fixtures</li>
+          <li><span class="icon-pending">○</span> Flooring, appliances, final finishes</li>
+          <li><span class="icon-pending">○</span> Punch list &amp; certificate of occupancy</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Listing outlook</h2>
+        <div class="listing-row"><span class="lbl">Conservative ($253/sqft)</span><span class="val">$700,000</span></div>
+        <div class="listing-row"><span class="lbl">334 Roddy comp ($281/sqft)</span><span class="val highlight">$778,000</span></div>
+        <div class="listing-row"><span class="lbl">Premium ($295/sqft)</span><span class="val">$817,000</span></div>
+        <hr class="divider">
+        <div class="listing-row"><span class="lbl">Projected gross profit</span><span class="val">$166K – $283K</span></div>
+        <div class="listing-row"><span class="lbl">Margin range</span><span class="val highlight">24% – 35%</span></div>
+        <hr class="divider">
+        <div class="listing-row"><span class="lbl">Key comp</span><span class="val" style="font-size:12px;">334 Roddy Branch — 2,064 sqft, Dec 2025, $281/sqft</span></div>
+      </div>
+
+    </div>
+
+    <!-- AP + Selections -->
+    <div class="card-grid">
+
+      <div class="card">
+        <h2>Open accounts payable</h2>
+        <table class="ap-table">
+          <tr>
+            <td>Phoenix Electric CM <span class="badge badge-danger" style="margin-left:6px;">10 days past due</span></td>
+            <td>$9,032</td>
+          </tr>
+          <tr>
+            <td>Witt Building Material (5 bills)</td>
+            <td>$1,685</td>
+          </tr>
+          <tr>
+            <td>Ferguson (plumbing — 330 Roddy)</td>
+            <td>$920</td>
+          </tr>
+          <tr>
+            <td>Universal Painting</td>
+            <td>$980</td>
+          </tr>
+          <tr>
+            <td>United Rentals + other</td>
+            <td>$197</td>
+          </tr>
+          <tr>
+            <td>Total A/P (all vendors)</td>
+            <td>$13,043</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Selections status</h2>
+        <div class="sel-grid">
+          <div class="sel-item"><span class="icon-check">✓</span> Interior paint (SW)</div>
+          <div class="sel-item"><span class="icon-check">✓</span> Exterior paint (SW)</div>
+          <div class="sel-item"><span class="icon-check">✓</span> Flooring — all 6 Cella picks</div>
+          <div class="sel-item"><span class="icon-check">✓</span> Master shower tile (custom)</div>
+          <div class="sel-item"><span class="icon-active">!</span> Lighting fixtures</div>
+          <div class="sel-item"><span class="icon-active">!</span> Hardware</div>
+          <div class="sel-item"><span class="icon-active">!</span> Appliances</div>
+          <div class="sel-item"><span class="icon-active">!</span> Front door color</div>
+        </div>
+        <hr class="divider" style="margin-top:14px;">
+        <p style="font-size:12px; color:#888;">Flooring total: $34,723 (ordered)</p>
+      </div>
+
+    </div>
+
+    <!-- Email copy -->
+    <div class="email-box">
+      <h2>Weekly briefing — ready to forward to Liz Lacey, Connell Properties</h2>
+      <div class="email-body" id="email-body">Subject: 330 Roddy Branch — Week of June 1 Update
+
+Hi Liz,
+
+Quick update as we close out May and head into June. Drywall hanging kicked off around May 20 and should be wrapping up this week — we're roughly on schedule to move into taping and mud shortly. Still tracking toward an Aug 31 completion with 91 days on the clock.
+
+**Construction status**
+Drywall phase — hanging complete or near-complete, taping/mud starts this week. Electrical rough-in (Phoenix Electric) is done and billed. Plumbing supplies from Ferguson came in mid-May, which tracks with MEP finishing strong before board-up. Est. ~55–60% complete. Target completion: Aug 31, 2026 (91 days out).
+
+**Cost & margin update**
+- Total invested in 330 Roddy: $410,619 (up ~$6,551 since May 17 baseline)
+- Construction cost ex-lot: $331,739 ($119.80/sqft on 2,769 sqft)
+- Projected all-in at completion: ~$534K (~$193/sqft) — no change to projection
+- Listing target range: $700K–$817K
+- Projected gross profit at target list: $166K–$283K (24–35% margin)
+
+**This week's vendor activity**
+Phoenix Electric has a $9,032 open balance tagged to 330 Roddy — electrical rough-in payment in queue. Ferguson has $920 in plumbing supplies billed directly to the property. Witt Building Material shows five separate May bills totaling ~$1,685, which tracks with lumber and miscellaneous materials through the MEP and drywall transition. Nothing unexpected — all consistent with where we are in the build.
+
+**Listing prep — what we should be discussing**
+1. Photographer timing — once trim is installed and paint is on (likely late July), we'll want to book quickly. Good photographers in Knoxville fill up. Worth identifying someone now.
+2. Open selections — lighting fixtures, hardware, appliances, and front door color are still undecided. These all affect staging and listing photos, so let's aim to lock those by end of June.
+3. Pre-listing walkthrough — at ~75% complete (probably early August), it'd be worth doing a walk together so you're fresh on the layout before we go live. The bonus room full bath is a real selling point and worth staging intentionally.
+
+**Comp watch**
+No significant new sales to flag in 37853 this week. 334 Roddy Branch (2,064 sqft, Dec 2025, ~$281/sqft) remains our cleanest comp. At 2,769 sqft, an in-line comp price puts us around $778K, which sits comfortably in the $700K–$817K range. I'll flag anything new that hits the street.
+
+Let me know if you have questions or want to walk the property.
+
+Thanks,
+Jeffrey</div>
+      <button class="copy-btn" onclick="copyEmail()">Copy email</button>
+    </div>
+
+  </main>
+
+  <footer>Falcon Development &nbsp;·&nbsp; Confidential &nbsp;·&nbsp; falcondevtn.com</footer>
+
+</div>
+
+<script>
+  // Change this password to whatever you want
+  const PASSWORD = 'roddy2026';
+
+  function checkPassword() {
+    const input = document.getElementById('pw-input').value;
+    if (input === PASSWORD) {
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      sessionStorage.setItem('roddy_auth', '1');
+    } else {
+      document.getElementById('gate-error').style.display = 'block';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  document.getElementById('pw-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkPassword();
+  });
+
+  // Stay logged in within the same browser tab session
+  if (sessionStorage.getItem('roddy_auth') === '1') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+  }
+
+  function copyEmail() {
+    const text = document.getElementById('email-body').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy email'; }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
